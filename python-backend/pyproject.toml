@@ -1,0 +1,17 @@
+[tool.poetry]
+name = "python-backend"
+version = "0.1.0"
+description = ""
+authors = ["tensorturtle <tensorturtle@gmail.com>"]
+readme = "README.md"
+packages = [{include = "python_backend"}]
+
+[tool.poetry.dependencies]
+python = "~3.10"
+websockets = "^12.0"
+bleak = "^0.21.1"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
