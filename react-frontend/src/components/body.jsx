@@ -1,41 +1,9 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import useWebSocket, { ReadyState } from 'react-use-websocket';
 
-function ConnectionColorful(isOpen) {
-    if (isOpen) {
-        return (
-            <div className="text-green-800">
-                READY
-            </div>
-        )
-    } else {
-        return (
-            <div className="flex">
-                <div className="text-red-800">
-                    NOT READY
-                </div>
-            </div>
-        )
-    }
-}
+import ConnectionColorful from './connectionColorful'
+import ExampleDevice from './exampleDevice'
 
-function ExampleDevice() {
-    return (
-        <div>
-            <h1 className="text-3xl mb-4">
-                Sterzo
-            </h1>
-            <button className="text-black p-4 w-full rounded outline outline-1 bg-slate-50 hover:bg-slate-100">
-                Connect
-            </button>
-            <div className="flex flex-col mt-4">
-                <h2 className="text-2xl">
-                    Live data from device
-                </h2>
-            </div>
-        </div>
-    )
-}
 function Body() {
     let [devices, setDevices] = useState([])
 
@@ -45,8 +13,8 @@ function Body() {
     const { sendJsonMessage, lastMessage, readyState } = useWebSocket(socketUrl);
     const handleClickSendMessage = useCallback(() => {
         setScanningLoading(true)
-        sendJsonMessage({event: "scan", data: "start"})
-        }, []);
+        sendJsonMessage({event: "scan_start", data: "start"})
+        }, [sendJsonMessage]);
     const connectionStatus = {
         [ReadyState.CONNECTING]: 'Connecting',
         [ReadyState.OPEN]: 'Open',
@@ -57,24 +25,29 @@ function Body() {
 
     // handle incoming messages
     useEffect(() => {
-        // console.log(`Got a new message: ${lastMessage?.data}`)
+        console.log(`Got a new message: ${lastMessage?.data}`)
         // parse the text message as JSON
         let message = lastMessage?.data
         if (message) {
             try {
                 let json = JSON.parse(message)
                 switch (json.event) {
-                    case "scan":
+                    case "scan_reply":
+                        // server sends a JSON (sorted python dict) with the devices eagerly, as soon as they are found
+                        // expect to receive like 10+ messages per second while scanning is happening.
                         let sortedDevices = Object.keys(json.data).sort((a, b) => {
                             return json.data[b].rssi - json.data[a].rssi
                         })
                         setDevices(sortedDevices.map((device) => {
                             return json.data[device].name
                         }))
+                        break;
+                    case "scan_finished":
+                        // server will send this flag event when it's done scanning
                         setScanningLoading(false)
                         break;
                     default:
-                        console.log("Unknown event")
+                        console.log("Unknown event.")
                 }
             } catch (e) {
                 console.log(e)

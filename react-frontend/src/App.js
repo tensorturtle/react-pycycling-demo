@@ -2,7 +2,6 @@ import Title from './components/title';
 import Body from './components/body';
 
 import './index.css';
-import { useState } from 'react';
 
 function App() {
   return (
