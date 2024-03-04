@@ -3,9 +3,10 @@ import useWebSocket, { ReadyState } from 'react-use-websocket';
 
 import ConnectionColorful from './connectionColorful'
 import ExampleDevice from './exampleDevice'
+import ScannedResultList from './scannedResultList'
 
 function Body() {
-    let [devices, setDevices] = useState([])
+    let [devices, setDevices] = useState({})
 
     const [scanningLoading, setScanningLoading] = useState(false)
 
@@ -13,7 +14,7 @@ function Body() {
     const { sendJsonMessage, lastMessage, readyState } = useWebSocket(socketUrl);
     const handleClickSendMessage = useCallback(() => {
         setScanningLoading(true)
-        sendJsonMessage({event: "scan_start", data: "start"})
+        sendJsonMessage({event: "scan_start", data: ""})
         }, [sendJsonMessage]);
     const connectionStatus = {
         [ReadyState.CONNECTING]: 'Connecting',
@@ -33,14 +34,11 @@ function Body() {
                 let json = JSON.parse(message)
                 switch (json.event) {
                     case "scan_reply":
-                        // server sends a JSON (sorted python dict) with the devices eagerly, as soon as they are found
+                        // Incoming json looks something like:
+                        // {"event": "scan_reply", "data": {"50068FEA-E7A3-887D-BF13-EEB5ACD35B13": {"name": STERZO, "RSSI": -89, "services": [STERZO]}, ...
                         // expect to receive like 10+ messages per second while scanning is happening.
-                        let sortedDevices = Object.keys(json.data).sort((a, b) => {
-                            return json.data[b].rssi - json.data[a].rssi
-                        })
-                        setDevices(sortedDevices.map((device) => {
-                            return json.data[device].name
-                        }))
+                        setDevices(json.data)
+                        console.log(devices)
                         break;
                     case "scan_finished":
                         // server will send this flag event when it's done scanning
@@ -53,7 +51,7 @@ function Body() {
                 console.log(e)
             }
         }
-    }, [lastMessage])
+    }, [lastMessage, devices])
 
     return (
         <div>
@@ -83,8 +81,6 @@ function Body() {
                                 {connectionStatus}
                             </div>
                         </div>
-
-
                     </div>
                 </div>
             </div>
@@ -98,6 +94,7 @@ function Body() {
                         <h1 className="text-4xl font-bold mb-4">
                             Run Scan
                         </h1>
+
                         <button 
                             onClick={handleClickSendMessage}
                             disabled={readyState !== ReadyState.OPEN || scanningLoading}
@@ -112,11 +109,8 @@ function Body() {
                             <h2 className="text-2xl underline my-4">
                                 Found Devices
                             </h2>
-                            { devices.length > 0 ? devices.map((device, index) => {
-                                return <div key={index}>{device}</div>
-                            }) : <div className="text-md text-gray-500">
-                                No devices found. Try running Scan again.
-                                </div> }
+                            <p className="text-xs">Blue means this application can read from the device</p>
+                            <ScannedResultList devices={devices} />
                         </div>
                     </div>
                 </div>

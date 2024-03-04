@@ -48,6 +48,7 @@ Run the app:
 ```
 poetry run python3 python_backend/main.py
 ```
+Note that you must re-launch the app after changes. There is no auto-loading.
 
 In another terminal:
 ```
@@ -63,4 +64,6 @@ Start web server:
 ```
 npm start
 ```
+This auto-loads the site upon changes.
+
 Go to `http://localhost:3000` on your web browser.
