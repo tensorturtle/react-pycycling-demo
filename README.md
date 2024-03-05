@@ -1,4 +1,4 @@
-# React frontend for [Pycycling]([https://](https://github.com/zacharyedwardbull/pycycling)
+# [React](https://react.dev/) frontend for [Pycycling](https://github.com/zacharyedwardbull/pycycling)
 
 Hit the ground running for your full-stack bluetooth project.
 This app is a clean, minimal demonstration of a React frontend that controls a Python flask server to scan and connect to bluetooth devices.
