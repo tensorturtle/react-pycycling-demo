@@ -250,6 +250,20 @@ files = [
 ]
 
 [[package]]
+name = "pycycling"
+version = "0.3.4"
+description = "A Python package for interacting with Bluetooth Low Energy (BLE) compatible bike trainers, power meters, radars and heart rate monitors"
+optional = false
+python-versions = ">=3.7"
+files = [
+    {file = "pycycling-0.3.4-py3-none-any.whl", hash = "sha256:3ecd97c533f896bd1a87d9a2b21c0ff3a098cae7194ca661824ec92f1f638380"},
+    {file = "pycycling-0.3.4.tar.gz", hash = "sha256:92f1eddbe17fa3ccf806135845954ea8d893a15fcf13a3a258de61f174b81e92"},
+]
+
+[package.dependencies]
+bleak = "*"
+
+[[package]]
 name = "pyobjc-core"
 version = "9.2"
 description = "Python<->ObjC Interoperability Module"
@@ -435,4 +449,4 @@ watchdog = ["watchdog (>=2.3)"]
 [metadata]
 lock-version = "2.0"
 python-versions = "~3.10"
-content-hash = "73b97529af1b4faca82c995f16f3ca5e3c760c06f9e8c7d031691f2957f2776f"
+content-hash = "4130b667834b6f4a95f7a9e901c90539417fe4d6c27b99284fdb912667a2f870"

@@ -67,3 +67,10 @@ npm start
 This auto-loads the site upon changes.
 
 Go to `http://localhost:3000` on your web browser.
+
+## Notes & Background
+
+**Why Websocket and not a higher-level abstraction like Socket.io?**
++ [Socket.io](https://socket.io/) provides an abstraction on top of websockets, and a slightly more ergonomic API.
++ Still, this project uses simple websockets because it provides more fine-grained control.
++ This application is designed as a starting point for your own implementation, so we try to minimize dependencies.
