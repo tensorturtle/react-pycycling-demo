@@ -7,4 +7,10 @@ For demonstration purposes, we use [pycycling](https://github.com/zacharyedwardb
 
 Note, while we have reached MVP, this is a work in progress. I recommend you star this repo and look out for versioned updates.
 
+I've prioritized the following when creating this app:
++ Well-commented
++ Educational
++ Minimalistic
++ Not-too-ugly (tailwindcss)
+
 ![](assets/mvp_screenshot.png)
