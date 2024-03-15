@@ -15,6 +15,8 @@ function Body() {
     const [ sterzoConnected, setSterzoConnected ] = useState(false)
     const [ sterzoAngle, setSterzoAngle ] = useState(0.0)
 
+    const [ modelState, setModelState ] = useState("")
+
     const [socketUrl, setSocketUrl] = useState('ws://localhost:8765');
     const { sendJsonMessage, lastMessage, readyState } = useWebSocket(socketUrl);
     const handleClickSendMessage = useCallback(() => {
@@ -81,6 +83,10 @@ function Body() {
                         // parse what could be either a float or a nan. If nan, 0
                         let angle = parseFloat(json.data) || 0.0
                         setSterzoAngle(angle)
+                        break;
+                    case "model_state":
+                        // server sends this flag when it successfully disconnects from a device
+                        setModelState(json.data)
                         break;
                     default:
                         console.log("Unknown event.")
@@ -175,6 +181,9 @@ function Body() {
                                 </div>
                                 <div className="text-4xl font-bold mb-4">
                                     Connect to Device
+                                </div>
+                                <div className="flex flex-col space-x-4">
+                                    modelState: {modelState}
                                 </div>
                                 <div className="flex flex-col space-x-4">
                                     {/* Filter the keys of devicesByService by service name if it's not empty, otherwise return empty list */}
