@@ -8,8 +8,11 @@ from enum import Enum
 import nest_asyncio
 nest_asyncio.apply()
 
+import transitions
+
 logging.basicConfig(level=logging.INFO)
 
+import websockets
 from websockets.server import serve
 
 from bleak_fsm import machine, BleakModel
@@ -19,6 +22,8 @@ from pycycling.sterzo import Sterzo
 websocket = None
 
 send_scan_results_event = asyncio.Event()
+#disconnect_event = asyncio.Event() # Set when frontend requests to close all connections
+
 
 class BLECyclingService(Enum):
     '''
@@ -55,7 +60,7 @@ async def send_scan_results():
     while True:
         discovered_devices = BleakModel.bt_devices
         serialized_devices = serialize(discovered_devices)
-        logging.info(f"Sending scan results: {serialized_devices}" )
+        logging.debug(f"Sending scan results: {serialized_devices}" )
         await websocket.send(json.dumps({"event": "scan_reply", "data": serialized_devices}))
         if send_scan_results_event.is_set():
             logging.info("Scan results stopped")
@@ -64,6 +69,7 @@ async def send_scan_results():
 
 async def async_send_sterzo_measurement(value):
     await websocket.send(json.dumps({"event": "steering_angle", "data": value}))
+
 def handle_sterzo_measurement(value):
     asyncio.create_task(async_send_sterzo_measurement(value))
 
@@ -71,8 +77,6 @@ async def main(websocket_):
     global websocket
     websocket = websocket_
     
-    disconnect_event = asyncio.Event() # Set when frontend requests to close all connections
-
     models = [] # BleakModel instances
 
     async for message in websocket:
@@ -81,38 +85,52 @@ async def main(websocket_):
         event = json_parsed["event"]
         if event == "scan_start":
             send_scan_results_event.clear()
-            await BleakModel.start_scan()
+            logging.debug("Starting BLE scan")
+            try:
+                await BleakModel.start_scan()
+            except:
+                logging.error("Failed to start BLE scan. Continuing.")
             asyncio.create_task(send_scan_results())
         elif event == "scan_stop":
             send_scan_results_event.set()
             logging.debug("Stopping BLE scan")
-            await BleakModel.stop_scan()
+            try:
+                await BleakModel.stop_scan()
+            except:
+                logging.error("Failed to stop BLE scan. Continuing.")
         elif event == "connect":
             logging.debug(f"Connecting to device {json_parsed['data']['device']}")
             model = BleakModel()
             machine.add_model(model)
-            await model.set_target(json_parsed["data"]["device"])
             model.wrap = lambda client: Sterzo(client)
             model.set_measurement_handler = lambda client: client.set_steering_measurement_callback(handle_sterzo_measurement)
             model.enable_notifications = lambda client: client.enable_steering_measurement_notifications()
             model.disable_notifications = lambda client: client.disable_steering_measurement_notifications()
-
-            await model.connect()
-            await model.stream()
+            if await model.set_target(json_parsed["data"]["device"]):
+                logging.info("Successfully set target")
+                if await model.connect():
+                    logging.info(f"Connected to device {json_parsed['data']['device']}")
+                    await model.stream()
+                    logging.info(f"Streaming from device {json_parsed['data']['device']}")
 
             # register it so that it can be cleaned up later
             models.append(model)
         elif event == "disconnect":
-            disconnect_event.set()
-
+            new_models = []
             logging.debug("Disconnecting from all devices")
-            [await model.clean_up() for model in models]
-            models = []
-            disconnect_event.clear() # Clear the event so that it can be used again
+            for model in models:
+                if model.state not in ["Connected", "Streaming"]:
+                    logging.warning(f"WARNING: Device {model.target} is not in a state where it can be disconnected. State: {model.state}")
+                    new_models.append(model)
+                else:
+                    await model.clean_up()
+            
+            models = new_models
         else:
             logging.warning(f"WARNING: This message has an unknown event name.")
             
-    [await model.clean_up() for model in models]
+    for model in models:
+        await model.clean_up()
 
 async def start_server():
     global webserver
