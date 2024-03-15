@@ -8,11 +8,8 @@ from enum import Enum
 import nest_asyncio
 nest_asyncio.apply()
 
-import transitions
+logging.basicConfig(level=logging.WARNING)
 
-logging.basicConfig(level=logging.INFO)
-
-import websockets
 from websockets.server import serve
 
 from bleak_fsm import machine, BleakModel
@@ -24,6 +21,7 @@ websocket = None
 send_scan_results_event = asyncio.Event()
 #disconnect_event = asyncio.Event() # Set when frontend requests to close all connections
 
+report_model_state_event = asyncio.Event()
 
 class BLECyclingService(Enum):
     '''
@@ -73,12 +71,17 @@ async def async_send_sterzo_measurement(value):
 def handle_sterzo_measurement(value):
     asyncio.create_task(async_send_sterzo_measurement(value))
 
+async def start_report_model_state(model):
+    while True:
+        await asyncio.sleep(0.5)
+        await websocket.send(json.dumps({"event": "model_state", "data": model.state}))
+        if report_model_state_event.is_set():
+            break
+
 async def main(websocket_):
     global websocket
     websocket = websocket_
     
-    models = [] # BleakModel instances
-
     async for message in websocket:
         json_parsed = json.loads(message)
         logging.debug(f"Received websocket message. Event name: '{json_parsed['event']}'. Data: '{json_parsed['data']}'")
@@ -106,31 +109,24 @@ async def main(websocket_):
             model.set_measurement_handler = lambda client: client.set_steering_measurement_callback(handle_sterzo_measurement)
             model.enable_notifications = lambda client: client.enable_steering_measurement_notifications()
             model.disable_notifications = lambda client: client.disable_steering_measurement_notifications()
+            
+            report_model_state_event.clear()
+            asyncio.create_task(start_report_model_state(model))
+
             if await model.set_target(json_parsed["data"]["device"]):
                 logging.info("Successfully set target")
                 if await model.connect():
                     logging.info(f"Connected to device {json_parsed['data']['device']}")
                     await model.stream()
                     logging.info(f"Streaming from device {json_parsed['data']['device']}")
-
-            # register it so that it can be cleaned up later
-            models.append(model)
         elif event == "disconnect":
-            new_models = []
-            logging.debug("Disconnecting from all devices")
-            for model in models:
-                if model.state not in ["Connected", "Streaming"]:
-                    logging.warning(f"WARNING: Device {model.target} is not in a state where it can be disconnected. State: {model.state}")
-                    new_models.append(model)
-                else:
-                    await model.clean_up()
-            
-            models = new_models
+            await BleakModel.clean_up_all()
+            report_model_state_event.set()
         else:
             logging.warning(f"WARNING: This message has an unknown event name.")
             
-    for model in models:
-        await model.clean_up()
+    await BleakModel.clean_up_all()
+    report_model_state_event.set()
 
 async def start_server():
     global webserver
