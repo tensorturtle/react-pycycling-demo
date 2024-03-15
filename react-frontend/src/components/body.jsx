@@ -135,11 +135,24 @@ function Body() {
                         <button 
                             onClick={handleClickSendMessage}
                             disabled={readyState !== ReadyState.OPEN || scanningLoading}
-                            className="text-white p-4 w-full rounded bg-slate-900 hover:bg-slate-700">
+                            className="text-white p-4 w-full rounded bg-slate-900 hover:bg-slate-700 mb-4">
                                 { scanningLoading ? 
                                 <div className="text-md text-gray-500">Scanning...</div> 
                                 : 
-                                <div className="text-md text-white">Scan Again</div>}
+                                <div className="text-md text-white">Start Scan</div>}
+                        </button>
+                        <button
+                            onClick={() => {
+                                sendJsonMessage({event: "scan_stop", data: ""})
+                                setScanningLoading(false)
+                            }}
+                            disabled={readyState !== ReadyState.OPEN || !scanningLoading}
+                            className="text-white p-4 w-full rounded bg-slate-900 hover:bg-slate-700">
+                                { scanningLoading ?
+                                <div className="text-md text-white">Stop Scanning</div>
+                                :
+                                <div className="text-md text-gray-500">Waiting for Scan to Start</div>
+                                }
                         </button>
                         <p className="text-xs my-2">Note: If you are currently connected to a device (Step 3), it will not show up here.</p>
 

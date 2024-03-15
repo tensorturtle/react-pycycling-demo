@@ -14,7 +14,7 @@ function Title() {
                     Which uses bleak and pycycling libraries to demonstrate Bluetooth scanning and connection.
                 </h2>
             </div>
-            <hr class="h-px my-8 bg-gray-200 border-0 dark:bg-gray-700"></hr>
+            <hr className="h-px my-8 bg-gray-200 border-0 dark:bg-gray-700"></hr>
 
         </div>
   
