@@ -103,7 +103,7 @@ async def main(websocket_):
                 logging.error("Failed to stop BLE scan. Continuing.")
         elif event == "connect":
             logging.debug(f"Connecting to device {json_parsed['data']['device']}")
-            model = BleakModel()
+            model = BleakModel(connection_timeout=20)
             machine.add_model(model)
             model.wrap = lambda client: Sterzo(client)
             model.set_measurement_handler = lambda client: client.set_steering_measurement_callback(handle_sterzo_measurement)
