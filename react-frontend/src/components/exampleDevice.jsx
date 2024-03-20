@@ -35,23 +35,35 @@ function ExampleDevice({sendJsonMessage, service, devices, deviceConnected, live
             <h1 className="text-3xl mb-4">
                 {service}
             </h1>
-            <h2>
-                Select from available devices
-            </h2>
-            {/* The following element shows a radio-button selection from a list of devices */}
-            <select 
-                value={selectedAddress} 
-                onChange={handleChange} 
-                className="text-xs bg-white border border-gray-300 py-2 px-4 my-4 rounded-lg shadow-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-            >
-                {devices.map((device) => {
-                    return (
-                        <option key={device.mac} value={device.mac}>
-                            {device.name} ({device.mac})
-                        </option>
-                    )
-                })}
-            </select>
+            {deviceConnected ? 
+                <div className="flex flex-col my-4">
+                    <h2 className="mb-4">
+                        Live data from device:
+                    </h2>
+                    <div className="bg-white p-2">
+                        {liveData}
+                    </div>
+                </div> 
+                : 
+                <div>
+                    <h2>
+                        Select from available devices
+                    </h2>
+                    <select 
+                    value={selectedAddress} 
+                    onChange={handleChange} 
+                    className="text-xs bg-white border border-gray-300 py-2 px-4 my-4 rounded-lg shadow-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                    >
+                        {devices.map((device) => {
+                            return (
+                                <option key={device.mac} value={device.mac}>
+                                    {device.name} ({device.mac})
+                                </option>
+                            )
+                        })}
+                    </select>
+                </div>
+            }
 
             <button 
                 onClick={handleConnect}
@@ -63,14 +75,7 @@ function ExampleDevice({sendJsonMessage, service, devices, deviceConnected, live
                     <div className="text-md text-white">Establish Connection</div>}
             </button>
 
-            <div className="flex flex-col mt-4">
-                <h2 className="text-2xl">
-                    Live data from device
-                </h2>
-                <div>
-                    {liveData}
-                </div>
-            </div>
+
         </div>
     )
 }

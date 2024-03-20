@@ -7,16 +7,12 @@ readme = "README.md"
 packages = [{include = "python_backend"}]
 
 [tool.poetry.dependencies]
-python = ">3.8,<=3.12"
+python = ">3.8,<3.13"
 bleak = "^0.21.1"
 flask = "^3.0.2"
 websockets = "^12.0"
 pycycling = "^0.3.4"
-<<<<<<< HEAD
 bleak-fsm = "^0.2.0"
-=======
-bleak-fsm = "^0.1.1"
->>>>>>> 0e06876f5499d17dcafd170a5353310d405e4afd
 nest-asyncio = "^1.6.0"
 
 

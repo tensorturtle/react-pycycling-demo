@@ -15,7 +15,8 @@ function Body() {
     const [ sterzoConnected, setSterzoConnected ] = useState(false)
     const [ sterzoAngle, setSterzoAngle ] = useState(0.0)
 
-    const [ modelState, setModelState ] = useState("")
+    const [ heartrateConnected, setHeartrateConnected ] = useState(false)
+    const [ heartrateData, setHeartrateData ] = useState(0)
 
     const [socketUrl, setSocketUrl] = useState('ws://localhost:8765');
     const { sendJsonMessage, lastMessage, readyState } = useWebSocket(socketUrl);
@@ -51,7 +52,7 @@ function Body() {
 
     // handle incoming messages
     useEffect(() => {
-        // console.log(`Got a new message: ${lastMessage?.data}`)
+        console.log(`Got a new message: ${lastMessage?.data}`)
         // parse the text message as JSON
         let message = lastMessage?.data
         if (message) {
@@ -68,28 +69,48 @@ function Body() {
                         // server will send this flag event when it's done scanning
                         setScanningLoading(false)
                         break;
-                    case "sterzo_connected":
+                    case "device_connected":
                         // server sends this flag when it successfully connects to a device
-                        console.log("Connected to STERZO")
-                        setSterzoConnected(true)
+                        console.info(`Connected to service ${json.data}`)
+                        switch (json.data) {
+                            case "STERZO":
+                                console.info("Setting sterzo connected")
+                                setSterzoConnected(true)
+                                break;
+                            case "HEARTRATE":
+                                setHeartrateConnected(true)
+                                break;
+                            default:
+                                console.log("Unknown device connected")
+                        }
                         break;
-                    case "sterzo_disconnected":
+                    case "all_devices_disconnected":
                         // server sends this flag when it successfully disconnects from a device
-                        console.log("Disconnected from STERZO")
+                        console.info("Disconnected from all devices")
                         setSterzoConnected(false)
+                        setHeartrateConnected(false) 
+                        setSterzoAngle("")
+                        setHeartrateData("")
                         break;
-                    case "steering_angle":
-                        // Live streaming data from sterzo sensor
-                        // parse what could be either a float or a nan. If nan, 0
-                        let angle = parseFloat(json.data) || 0.0
-                        setSterzoAngle(angle)
-                        break;
-                    case "model_state":
-                        // server sends this flag when it successfully disconnects from a device
-                        setModelState(json.data)
-                        break;
+                    case "live_data":
+                        switch (json.data.service) {
+                            case "STERZO":
+                                // Live streaming data from sterzo sensor
+                                // parse what could be either a float or a nan. If nan, 0
+                                let angle = parseFloat(json.data.value) || 0.0
+                                setSterzoAngle(angle)
+                                break;
+                            case "HEARTRATE":
+                                // Live streaming data from heartrate sensor
+                                console.info(`Live heartrate data: ${json.data.value}`)
+                                setHeartrateData(json.data.value)
+                                break;
+                            default:
+                                console.warning(`Unknown service: ${json.data.service}`)
+                            }
+                            break;
                     default:
-                        console.log("Unknown event.")
+                        console.error("Unknown event.")
                 }
             } catch (e) {
                 console.log(e)
@@ -182,13 +203,10 @@ function Body() {
                                 <div className="text-4xl font-bold mb-4">
                                     Connect to Device
                                 </div>
-                                <div className="flex flex-col space-x-4">
-                                    modelState: {modelState}
-                                </div>
-                                <div className="flex flex-col space-x-4">
                                     {/* Filter the keys of devicesByService by service name if it's not empty, otherwise return empty list */}
                                     <ExampleDevice sendJsonMessage={sendJsonMessage} service="STERZO" devices={devicesByService["STERZO"] || []} deviceConnected={sterzoConnected} liveData={sterzoAngle} />
-                                </div>
+                                    <div className="border-b-2 border-slate-300 my-4"></div>
+                                    <ExampleDevice sendJsonMessage={sendJsonMessage} service="HEARTRATE" devices={devicesByService["HEARTRATE"] || []} deviceConnected={heartrateConnected} liveData={heartrateData} />
                             </div>
                         </div>
                     </div>

@@ -8,13 +8,13 @@ from enum import Enum
 import nest_asyncio
 nest_asyncio.apply()
 
-logging.basicConfig(level=logging.WARNING)
-
+logging.basicConfig(level=logging.INFO)
 from websockets.server import serve
 
 from bleak_fsm import BleakModel
 
 from pycycling.sterzo import Sterzo
+from pycycling.heart_rate_service import HeartRateService
 
 websocket = None
 
@@ -25,12 +25,15 @@ report_model_state_event = asyncio.Event()
 
 class BLECyclingService(Enum):
     '''
-    BLE Services and Characteristics that are broadcasted by the devices themselves when being scanned.
+    BLE Services that are broadcasted by the devices themselves when being scanned.
 
     Some are assigned: https://www.bluetooth.com/specifications/assigned-numbers/
     Others (like STERZO) are just made up by the manufacturer.
+
+    Note these are different from the Characteristic UUIDs that are used to enable notifications and read/write data.
     '''
     STERZO = "347b0001-7635-408b-8918-8ff3949ce592"
+    HEARTRATE = "0000180d-0000-1000-8000-00805f9b34fb"
     FITNESS = "00001826-0000-1000-8000-00805f9b34fb"
     POWERMETER = "00001818-0000-1000-8000-00805f9b34fb"
 
@@ -40,6 +43,7 @@ def get_implemented_services(advertisement_data):
     for service in BLECyclingService:
         if service.value in advertisement_data.service_uuids:
             implemented_services.append(service.name)
+            print(f"Service {service.name} implemented")
     return implemented_services
 
 def serialize(ble_devices):
@@ -66,10 +70,19 @@ async def send_scan_results():
         await asyncio.sleep(0.5)
 
 async def async_send_sterzo_measurement(value):
-    await websocket.send(json.dumps({"event": "steering_angle", "data": value}))
+    await websocket.send(json.dumps({"event": "live_data", "data": {"service": "STERZO", "value": value}}))
 
 def handle_sterzo_measurement(value):
     asyncio.create_task(async_send_sterzo_measurement(value))
+
+async def async_send_heart_rate_measurement(value):
+    bpm = value.bpm
+    # there's a bug with the Heart rate monitor (WHOOP) where it sends 0 bpm between valid measurements
+    if bpm == 0: return
+    await websocket.send(json.dumps({"event": "live_data", "data": {"service": "HEARTRATE", "value": bpm}}))
+
+def handle_heart_rate_measurement(value):
+    asyncio.create_task(async_send_heart_rate_measurement(value))
 
 async def start_report_model_state(model):
     while True:
@@ -102,24 +115,42 @@ async def main(websocket_):
             except:
                 logging.error("Failed to stop BLE scan. Continuing.")
         elif event == "connect":
-            logging.debug(f"Connecting to device {json_parsed['data']['device']}")
-            model = BleakModel()
-            model.wrap = lambda client: Sterzo(client)
-            model.set_measurement_handler = lambda client: client.set_steering_measurement_callback(handle_sterzo_measurement)
-            model.enable_notifications = lambda client: client.enable_steering_measurement_notifications()
-            model.disable_notifications = lambda client: client.disable_steering_measurement_notifications()
-            
-            report_model_state_event.clear()
-            asyncio.create_task(start_report_model_state(model))
+            address = json_parsed["data"]["device"]
+            service_type = json_parsed["data"]["service"]
 
-            if await model.set_target(json_parsed["data"]["device"]):
+            model = BleakModel()
+            
+            if service_type == "STERZO":
+                model.wrap = lambda client: Sterzo(client)
+                model.set_measurement_handler = lambda client: client.set_steering_measurement_callback(handle_sterzo_measurement)
+                model.enable_notifications = lambda client: client.enable_steering_measurement_notifications()
+                model.disable_notifications = lambda client: client.disable_steering_measurement_notifications()
+
+            elif service_type == "HEARTRATE":
+                model.wrap = lambda client: HeartRateService(client)
+                model.set_measurement_handler = lambda client: client.set_hr_measurement_handler(handle_heart_rate_measurement)
+                model.enable_notifications = lambda client: client.enable_hr_measurement_notifications()
+                model.disable_notifications = lambda client: client.disable_hr_measurement_notifications()
+
+            else:
+                logging.warning(f"WARNING: This service type is not implemented yet: {service_type}")
+                continue
+                
+            # report_model_state_event.clear()
+            # asyncio.create_task(start_report_model_state(model))
+
+            if await model.set_target(address):
                 logging.info("Successfully set target")
                 if await model.connect():
-                    logging.info(f"Connected to device {json_parsed['data']['device']}")
+                    msg_to_send = json.dumps({"event": "device_connected", "data": service_type})
+                    logging.warning(f"Sending message: {msg_to_send}")
+                    await websocket.send(json.dumps({"event": "device_connected", "data": service_type}))
+                    logging.info(f"Connected to device {model.ble_device}")
                     await model.stream()
-                    logging.info(f"Streaming from device {json_parsed['data']['device']}")
+                    logging.info(f"Streaming from device {model.ble_device}")
         elif event == "disconnect":
             await BleakModel.clean_up_all()
+            await websocket.send(json.dumps({"event": "all_devices_disconnected"}))
             report_model_state_event.set()
         else:
             logging.warning(f"WARNING: This message has an unknown event name.")
