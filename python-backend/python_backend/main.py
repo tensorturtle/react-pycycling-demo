@@ -12,7 +12,7 @@ logging.basicConfig(level=logging.WARNING)
 
 from websockets.server import serve
 
-from bleak_fsm import machine, BleakModel
+from bleak_fsm import BleakModel
 
 from pycycling.sterzo import Sterzo
 
@@ -104,7 +104,6 @@ async def main(websocket_):
         elif event == "connect":
             logging.debug(f"Connecting to device {json_parsed['data']['device']}")
             model = BleakModel()
-            machine.add_model(model)
             model.wrap = lambda client: Sterzo(client)
             model.set_measurement_handler = lambda client: client.set_steering_measurement_callback(handle_sterzo_measurement)
             model.enable_notifications = lambda client: client.enable_steering_measurement_notifications()

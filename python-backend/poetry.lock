@@ -40,13 +40,13 @@ typing-extensions = {version = ">=4.7.0", markers = "python_version < \"3.12\""}
 
 [[package]]
 name = "bleak-fsm"
-version = "0.1.0"
+version = "0.2.0"
 description = "A Finite State Machine abstraction over the Bleak Bluetooth library for simplified state management in production Python applications."
 optional = false
 python-versions = ">=3.8,<3.13"
 files = [
-    {file = "bleak_fsm-0.1.0-py3-none-any.whl", hash = "sha256:4a48b8071e6d183cef45d5da7adcb55b3ea0dd58a33888ede2e79ddb9e1f1dca"},
-    {file = "bleak_fsm-0.1.0.tar.gz", hash = "sha256:f252dade37ccb45ab63bfb7c8e3dbd479faad3358de94e052f1728705b077c14"},
+    {file = "bleak_fsm-0.2.0-py3-none-any.whl", hash = "sha256:9f23755a8419accb541d825934c07a92071e2b2ea00be2fbf0572597640c434c"},
+    {file = "bleak_fsm-0.2.0.tar.gz", hash = "sha256:4c88f25d7d5a22874bec828d67fcceea8e7372e3fc0c9add7fee82b9af66f007"},
 ]
 
 [package.dependencies]
@@ -764,4 +764,4 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "p
 [metadata]
 lock-version = "2.0"
 python-versions = ">3.8,<=3.12"
-content-hash = "1e896c21048aa0a047a7617ee79ec55ab496e199d291641406ff824d7efc253b"
+content-hash = "bcc6fcfd0a897346760e6f37083b613451e4dbf98b45de098daf0ee81a4e3517"
